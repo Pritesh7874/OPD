@@ -1,0 +1,114 @@
+<header class="page-head">
+  <h1>Appointments</h1>
+  <p>Book a visit for a registered patient and open it for consultation.</p>
+</header>
+
+<div class="split">
+  <section class="panel" aria-labelledby="book-heading">
+    <h2 id="book-heading">Book an appointment</h2>
+
+    @if (successMessage) {
+      <div class="banner ok" role="status">{{ successMessage }}</div>
+    }
+    @if (formError) {
+      <div class="banner err" role="alert">{{ formError }}</div>
+    }
+
+    @if (patientsError) {
+      <div class="banner err" role="alert">{{ patientsError }}</div>
+    } @else if (!patientsLoading && patients.length === 0) {
+      <p class="state">
+        There are no registered patients yet.
+        <a routerLink="/patients">Register a patient</a> before booking.
+      </p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="book()" novalidate>
+        <div class="field">
+          <label for="patient">Patient</label>
+          <select id="patient" (change)="onPatientChange($event)" [disabled]="patientsLoading">
+            <option value="" [selected]="form.controls.patientId.value === null">
+              {{ patientsLoading ? 'Loading patients…' : 'Select a patient…' }}
+            </option>
+            @for (p of patients; track p.id) {
+              <option [value]="p.id" [selected]="p.id === form.controls.patientId.value">
+                {{ p.name }} · {{ p.phoneNumber }}
+              </option>
+            }
+          </select>
+          @if (fieldError('patientId'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+
+        <div class="field">
+          <label for="doctor">Doctor</label>
+          <input id="doctor" type="text" formControlName="doctorName" autocomplete="off" placeholder="e.g. Dr. Mehta" />
+          @if (fieldError('doctorName'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+
+        <div class="field">
+          <label for="when">Date and time</label>
+          <input id="when" type="datetime-local" formControlName="appointmentDateTime" />
+          @if (fieldError('appointmentDateTime'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+
+        <button class="btn primary" type="submit" [disabled]="saving || patientsLoading">
+          {{ saving ? 'Booking…' : 'Book appointment' }}
+        </button>
+      </form>
+    }
+  </section>
+
+  <section class="panel" aria-labelledby="appt-list-heading">
+    <div class="panel-head">
+      <h2 id="appt-list-heading">{{ view === 'today' ? 'Today’s appointments' : 'All appointments' }}</h2>
+      <div class="segmented" role="group" aria-label="Appointment filter">
+        <button type="button" [class.on]="view === 'today'" [attr.aria-pressed]="view === 'today'" (click)="setView('today')">Today</button>
+        <button type="button" [class.on]="view === 'all'" [attr.aria-pressed]="view === 'all'" (click)="setView('all')">All</button>
+      </div>
+    </div>
+
+    @if (listError) {
+      <div class="banner err" role="alert">{{ listError }}</div>
+    } @else if (listLoading) {
+      <p class="state">Loading appointments…</p>
+    } @else if (appointments.length === 0) {
+      <p class="state">
+        {{ view === 'today' ? 'No appointments are booked for today.' : 'No appointments have been booked yet.' }}
+      </p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Patient</th>
+              <th>Doctor</th>
+              <th>Status</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of appointments; track a.id) {
+              <tr>
+                <td class="num">
+                  @if (view === 'today') {
+                    {{ a.appointmentDateTime | date: 'hh:mm a' }}
+                  } @else {
+                    {{ a.appointmentDateTime | date: 'dd MMM yyyy, hh:mm a' }}
+                  }
+                </td>
+                <td class="strong">{{ a.patientName }}</td>
+                <td>{{ a.doctorName }}</td>
+                <td><app-status-badge [status]="a.status" /></td>
+                <td class="actions">
+                  <a class="btn small" [class.ghost]="a.status === 'COMPLETED'" [routerLink]="['/consultation', a.id]">
+                    {{ actionLabel(a) }}
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>

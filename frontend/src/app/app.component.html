@@ -1,0 +1,17 @@
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>OPD Desk</span>
+    </div>
+    <nav aria-label="Main">
+      <a routerLink="/patients" routerLinkActive="active">Patients</a>
+      <a routerLink="/appointments" routerLinkActive="active">Appointments</a>
+      <a routerLink="/consultation" routerLinkActive="active">Consultations</a>
+    </nav>
+    <p class="rail-note">“Today” follows the server’s local date and time zone.</p>
+  </aside>
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

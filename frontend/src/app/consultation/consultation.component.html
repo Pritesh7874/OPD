@@ -1,0 +1,176 @@
+<header class="page-head">
+  <h1>Consultations</h1>
+  <p>Record vitals and notes for an appointment, then review a patient’s completed visits.</p>
+</header>
+
+<section class="panel" aria-labelledby="consult-heading">
+  <h2 id="consult-heading">Consultation form</h2>
+
+  @if (!appointmentId) {
+    <!-- No appointment open: let the doctor pick one -->
+    @if (pickerError) {
+      <div class="banner err" role="alert">{{ pickerError }}</div>
+    } @else if (pickerLoading) {
+      <p class="state">Loading appointments…</p>
+    } @else if (openAppointments.length === 0) {
+      <p class="state">
+        No appointments are waiting for a consultation.
+        <a routerLink="/appointments">Book an appointment</a> first.
+      </p>
+    } @else {
+      <div class="field narrow">
+        <label for="pick">Open an appointment</label>
+        <select id="pick" (change)="onPickAppointment($event)">
+          <option value="" selected>Select an appointment…</option>
+          @for (a of openAppointments; track a.id) {
+            <option [value]="a.id">{{ optionLabel(a) }}</option>
+          }
+        </select>
+        <small class="hint">Only appointments that are not completed are listed. You can also use the buttons on the Appointments screen.</small>
+      </div>
+    }
+  } @else if (formLoading) {
+    <p class="state">Loading appointment…</p>
+  } @else if (!appointment) {
+    <div class="banner err" role="alert">{{ formError || 'The appointment could not be loaded.' }}</div>
+    <a class="btn ghost" routerLink="/consultation">Back to consultations</a>
+  } @else {
+    <!-- Patient and appointment strip -->
+    <div class="chart-strip">
+      <div>
+        <div class="chart-name">{{ appointment.patientName }}</div>
+        <div class="chart-meta">{{ appointment.patientPhone }}</div>
+      </div>
+      <div>
+        <div class="chart-label">Doctor</div>
+        <div>{{ appointment.doctorName }}</div>
+      </div>
+      <div>
+        <div class="chart-label">Appointment</div>
+        <div>{{ appointment.appointmentDateTime | date: 'dd MMM yyyy, hh:mm a' }}</div>
+      </div>
+      <div>
+        <div class="chart-label">Status</div>
+        <app-status-badge [status]="appointment.status" />
+      </div>
+    </div>
+
+    @if (formSuccess) {
+      <div class="banner ok" role="status">{{ formSuccess }}</div>
+    }
+    @if (formError) {
+      <div class="banner err" role="alert">{{ formError }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="saveDraft()" novalidate>
+      <div class="field-row">
+        <div class="field">
+          <label for="bp">Blood pressure</label>
+          <input id="bp" type="text" formControlName="bloodPressure" placeholder="120/80" autocomplete="off" />
+          @if (fieldError('bloodPressure'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+        <div class="field">
+          <label for="temp">Temperature</label>
+          <input id="temp" type="number" step="0.1" formControlName="temperature" placeholder="98.6" />
+          @if (fieldError('temperature'); as msg) { <small class="field-error">{{ msg }}</small> }
+          <small class="hint">°F or °C, accepted from 30 to 110.</small>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="notes">Consultation notes</label>
+        <textarea id="notes" rows="4" formControlName="notes" placeholder="Symptoms, diagnosis, advice"></textarea>
+        @if (fieldError('notes'); as msg) { <small class="field-error">{{ msg }}</small> }
+      </div>
+
+      @if (!isCompleted) {
+        <div class="vitals-meter" [class.met]="vitalsCount >= minVitals" aria-live="polite">
+          <span class="dots" aria-hidden="true">
+            @for (i of [1, 2]; track i) {
+              <span class="dot" [class.on]="vitalsCount >= i"></span>
+            }
+          </span>
+          <span>
+            {{ vitalsCount }} of {{ minVitals }} vitals entered.
+            @if (vitalsCount < minVitals) {
+              Enter blood pressure and temperature to complete.
+            } @else {
+              Ready to complete.
+            }
+          </span>
+        </div>
+
+        <div class="button-row">
+          <button class="btn ghost" type="submit" [disabled]="saving">Save draft</button>
+          <button class="btn primary" type="button" [disabled]="!canComplete" (click)="complete()">
+            {{ saving ? 'Saving…' : 'Complete consultation' }}
+          </button>
+        </div>
+      } @else {
+        <p class="state">This consultation is completed and can no longer be edited.</p>
+        <div class="button-row">
+          <a class="btn ghost" routerLink="/appointments">Back to appointments</a>
+          <a class="btn ghost" routerLink="/consultation">Open another appointment</a>
+        </div>
+      }
+    </form>
+  }
+</section>
+
+<section class="panel" aria-labelledby="history-heading">
+  <div class="panel-head">
+    <h2 id="history-heading">Completed consultations</h2>
+    <div class="search">
+      <label class="sr-only" for="history-patient">Patient</label>
+      <select id="history-patient" (change)="onHistoryPatientChange($event)">
+        <option value="" [selected]="historyPatientId === null">Select a patient…</option>
+        @for (p of patients; track p.id) {
+          <option [value]="p.id" [selected]="p.id === historyPatientId">{{ p.name }} · {{ p.phoneNumber }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (historyError) {
+    <div class="banner err" role="alert">{{ historyError }}</div>
+  } @else if (historyPatientId === null) {
+    <p class="state">Choose a patient to see their completed consultations.</p>
+  } @else if (historyLoading) {
+    <p class="state">Loading history…</p>
+  } @else {
+    @if (historyPatient) {
+      <p class="history-patient">
+        <strong>{{ historyPatient.name }}</strong>
+        · {{ historyPatient.gender | titlecase }}, {{ historyPatient.age }} years · {{ historyPatient.phoneNumber }}
+      </p>
+    }
+    @if (history.length === 0) {
+      <p class="state">No completed consultations for this patient yet.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Doctor</th>
+              <th>Blood pressure</th>
+              <th>Temperature</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of history; track c.id) {
+              <tr>
+                <td class="num">{{ c.consultationDateTime | date: 'dd MMM yyyy, hh:mm a' }}</td>
+                <td>{{ c.doctorName }}</td>
+                <td class="num">{{ c.bloodPressure ?? '—' }}</td>
+                <td class="num">{{ c.temperature ?? '—' }}</td>
+                <td class="notes">{{ c.notes ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>

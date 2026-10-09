@@ -1,0 +1,113 @@
+<header class="page-head">
+  <h1>Patients</h1>
+  <p>Register a patient, then book them an appointment.</p>
+</header>
+
+<div class="split">
+  <section class="panel" aria-labelledby="register-heading">
+    <h2 id="register-heading">Register a patient</h2>
+
+    @if (successMessage) {
+      <div class="banner ok" role="status">{{ successMessage }}</div>
+    }
+    @if (formError) {
+      <div class="banner err" role="alert">{{ formError }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="register()" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" type="text" formControlName="name" autocomplete="off" />
+        @if (fieldError('name'); as msg) { <small class="field-error">{{ msg }}</small> }
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" formControlName="gender">
+            <option value="" disabled>Select…</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+          </select>
+          @if (fieldError('gender'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+
+        <div class="field">
+          <label for="age">Age</label>
+          <input id="age" type="number" min="1" max="120" formControlName="age" />
+          @if (fieldError('age'); as msg) { <small class="field-error">{{ msg }}</small> }
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input id="phone" type="tel" formControlName="phoneNumber" autocomplete="off" />
+        @if (fieldError('phoneNumber'); as msg) { <small class="field-error">{{ msg }}</small> }
+      </div>
+
+      <button class="btn primary" type="submit" [disabled]="saving">
+        {{ saving ? 'Registering…' : 'Register patient' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="list-heading">
+    <div class="panel-head">
+      <h2 id="list-heading">Registered patients</h2>
+      <div class="search">
+        <label class="sr-only" for="search">Search by name or phone number</label>
+        <input
+          id="search"
+          type="search"
+          placeholder="Search by name or phone"
+          [value]="searchText"
+          (input)="onSearchInput($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    @if (listError) {
+      <div class="banner err" role="alert">{{ listError }}</div>
+    } @else if (loading) {
+      <p class="state">Loading patients…</p>
+    } @else if (patients.length === 0) {
+      <p class="state">
+        @if (searchText.trim()) {
+          No patient matches “{{ searchText.trim() }}”.
+          <button type="button" class="link" (click)="clearSearch()">Show all patients</button>
+        } @else {
+          No patients yet. Register the first one using the form.
+        }
+      </p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Gender</th>
+              <th class="num">Age</th>
+              <th>Phone</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of patients; track p.id) {
+              <tr>
+                <td class="strong">{{ p.name }}</td>
+                <td>{{ p.gender | titlecase }}</td>
+                <td class="num">{{ p.age }}</td>
+                <td class="num">{{ p.phoneNumber }}</td>
+                <td class="actions">
+                  <a class="btn small" routerLink="/appointments" [queryParams]="{ patientId: p.id }">Book</a>
+                  <a class="btn small ghost" routerLink="/consultation" [queryParams]="{ patientId: p.id }">History</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>
